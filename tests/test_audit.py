@@ -308,3 +308,82 @@ def test_query_preserves_original_payload(client):
 
     assert response.status_code == 200
     assert response.json()["events"][0]["payload"] == event["payload"]
+
+
+def test_export_requires_filter(client):
+    response = client.get("/audit/export")
+
+    assert response.status_code == 422
+
+
+def test_export_by_actor(client):
+    first = make_event("ACCOUNT_VIEWED")
+    first["actorId"] = "employee_111"
+
+    second = make_event("ACCOUNT_UPDATED")
+    second["actorId"] = "employee_222"
+
+    assert client.post("/audit", json=first).status_code == 201
+    assert client.post("/audit", json=second).status_code == 201
+
+    response = client.get(
+        "/audit/export",
+        params={"actorId": "employee_111"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["exported"] is True
+    assert data["total"] == 1
+    assert data["verification"]["valid"] is True
+    assert data["events"][0]["actorId"] == "employee_111"
+
+
+def test_export_by_resource(client):
+    first = make_event()
+    first["resourceId"] = "account_111"
+
+    second = make_event()
+    second["resourceId"] = "account_222"
+
+    assert client.post("/audit", json=first).status_code == 201
+    assert client.post("/audit", json=second).status_code == 201
+
+    response = client.get(
+        "/audit/export",
+        params={"resourceId": "account_222"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["events"][0]["resourceId"] == "account_222"
+
+
+def test_export_refuses_tampered_chain(client):
+    assert client.post(
+        "/audit",
+        json=make_event(),
+    ).status_code == 201
+
+    with database.get_connection() as connection:
+        connection.execute(
+            "UPDATE audit_events SET actor_id = ? WHERE id = ?",
+            ("attacker_999", 1),
+        )
+        connection.commit()
+
+    response = client.get(
+        "/audit/export",
+        params={"resourceId": "account_456"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["exported"] is False
+    assert data["verification"]["valid"] is False
+    assert data["verification"]["failedEventId"] == 1
+    assert "events" not in data

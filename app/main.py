@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from app.export_service import export_audit_events
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, status
@@ -70,4 +72,21 @@ def get_audit_events(
         end_time=to_utc(endTime),
         limit=limit,
         offset=offset,
+    )
+
+
+@app.get("/audit/export")
+def export_audit_records(
+    actorId: str | None = None,
+    resourceId: str | None = None,
+):
+    if actorId is None and resourceId is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide actorId or resourceId",
+        )
+
+    return export_audit_events(
+        actor_id=actorId,
+        resource_id=resourceId,
     )

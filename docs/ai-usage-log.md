@@ -221,3 +221,55 @@ Verified:
 - No trusted external hash anchoring
 - Retention, redaction, and export are not implemented
 - Compliance reporting requirements remain partially specified
+
+## Entry 5 — Filtered Audit Export
+
+Date: 2026-11-26
+
+### Task
+
+Implement JSON export of audit events by actor ID or resource ID.
+
+### AI Assistance
+
+ChatGPT assisted with:
+- Designing the export service
+- Integrating GET /audit/export
+- Implementing batched retrieval
+- Adding full-chain verification before export
+- Writing automated export tests
+- Identifying export integrity limitations
+
+### Developer Actions
+
+- Created app/export_service.py
+- Integrated the export endpoint
+- Tested export against existing audit records
+- Added tests for actor and resource filtering
+- Tested export refusal after direct database tampering
+
+### Validation
+
+Command:
+
+    python -m pytest -v
+
+Reported result:
+
+    19 passed
+
+Verified:
+- Export requires an actor or resource filter
+- Actor-based export
+- Resource-based export
+- Export includes chain verification status
+- Export refuses to return records when chain verification fails
+
+### Known Limitations
+
+- Exported subsets are not independently verifiable
+- Export completeness is not cryptographically proven
+- Verification and export retrieval are separate database reads
+- No authentication or authorization
+- No external trusted hash anchor
+- Retention and redaction are not implemented
