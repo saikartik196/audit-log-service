@@ -167,3 +167,57 @@ Verified:
 - No externally trusted hash checkpoint exists
 - Query filtering and pagination are not implemented
 - Retention, redaction, export, and compliance reporting remain pending
+
+## Entry 4 — Audit Query API
+
+Date: 2026-11-26
+
+### Task
+
+Implement audit event retrieval, filtering, pagination,
+and consistent UTC timestamp handling.
+
+### AI Assistance
+
+ChatGPT assisted with:
+- Designing the query service
+- Building parameterized SQLite filters
+- Implementing GET /audit
+- Adding pagination validation
+- Correcting timezone-naive timestamp handling
+- Writing automated query tests
+
+### Developer Actions
+
+- Created app/query_service.py
+- Integrated GET /audit into FastAPI
+- Tested the API against existing records
+- Updated timestamp normalization in app/audit_service.py
+- Ran automated tests for filters and pagination
+
+### Validation
+
+Command:
+
+    python -m pytest -v
+
+Result:
+
+    15 passed, 1 warning
+
+Verified:
+- Actor and event-type filtering
+- Resource type and resource ID filtering
+- Time-range filtering for representative timestamps
+- Limit and offset pagination
+- Rejection of invalid pagination limits
+- Preservation of structured payloads
+- UTC interpretation of timezone-naive timestamps
+
+### Known Limitations
+
+- Timestamp text comparisons need stronger boundary handling
+- No authentication or authorization
+- No trusted external hash anchoring
+- Retention, redaction, and export are not implemented
+- Compliance reporting requirements remain partially specified

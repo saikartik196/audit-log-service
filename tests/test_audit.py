@@ -166,3 +166,145 @@ def test_detects_broken_hash_link(client):
     assert result["valid"] is False
     assert result["failedEventId"] == 2
     assert result["reason"] == "Previous hash mismatch"
+
+
+def test_filter_events_by_actor(client):
+    client.post("/audit", json=make_event("USER_LOGIN"))
+
+    second_event = make_event("ACCOUNT_UPDATED")
+    second_event["actorId"] = "employee_999"
+
+    client.post("/audit", json=second_event)
+
+    response = client.get(
+        "/audit",
+        params={"actorId": "employee_999"},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["events"]) == 1
+    assert data["events"][0]["actorId"] == "employee_999"
+
+
+def test_filter_events_by_event_type(client):
+    client.post("/audit", json=make_event("USER_LOGIN"))
+    client.post("/audit", json=make_event("ACCOUNT_UPDATED"))
+
+    response = client.get(
+        "/audit",
+        params={"eventType": "ACCOUNT_UPDATED"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["events"][0]["eventType"] == "ACCOUNT_UPDATED"
+
+
+def test_audit_pagination(client):
+    for _ in range(5):
+        response = client.post(
+            "/audit",
+            json=make_event(),
+        )
+        assert response.status_code == 201
+
+    response = client.get(
+        "/audit",
+        params={"limit": 2, "offset": 2},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 2
+    assert len(data["events"]) == 2
+    assert [event["id"] for event in data["events"]] == [3, 4]
+
+
+def test_invalid_pagination_is_rejected(client):
+    response = client.get(
+        "/audit",
+        params={"limit": 0},
+    )
+
+    assert response.status_code == 422
+
+
+def test_filter_by_resource(client):
+    first = make_event("ACCOUNT_VIEWED")
+    first["resourceId"] = "account_111"
+
+    second = make_event("ACCOUNT_VIEWED")
+    second["resourceId"] = "account_222"
+
+    client.post("/audit", json=first)
+    client.post("/audit", json=second)
+
+    response = client.get(
+        "/audit",
+        params={
+            "resourceType": "ACCOUNT",
+            "resourceId": "account_222",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["events"][0]["resourceId"] == "account_222"
+
+
+def test_filter_by_time_range(client):
+    for date in [
+        "2026-01-01T10:00:00Z",
+        "2026-02-01T10:00:00Z",
+        "2026-03-01T10:00:00Z",
+    ]:
+        event = make_event()
+        event["timestamp"] = date
+        assert client.post("/audit", json=event).status_code == 201
+
+    response = client.get(
+        "/audit",
+        params={
+            "startTime": "2026-01-15T00:00:00Z",
+            "endTime": "2026-02-15T00:00:00Z",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["events"][0]["timestamp"].startswith(
+        "2026-02-01"
+    )
+
+
+def test_naive_timestamp_is_interpreted_as_utc(client):
+    event = make_event()
+    event["timestamp"] = "2026-02-01T10:00:00"
+
+    response = client.post("/audit", json=event)
+
+    assert response.status_code == 201
+    assert response.json()["timestamp"] == "2026-02-01T10:00:00+00:00"
+
+
+def test_query_preserves_original_payload(client):
+    event = make_event()
+    event["payload"] = {
+        "action": "VIEW",
+        "metadata": {"source": "dashboard"},
+    }
+
+    assert client.post("/audit", json=event).status_code == 201
+
+    response = client.get("/audit")
+
+    assert response.status_code == 200
+    assert response.json()["events"][0]["payload"] == event["payload"]

@@ -8,11 +8,19 @@ from app.schemas import AuditEventCreate
 
 
 def create_audit_event(event: AuditEventCreate):
-    timestamp = (
-        event.timestamp.astimezone(timezone.utc).isoformat()
-        if event.timestamp
-        else datetime.now(timezone.utc).isoformat()
-    )
+    if event.timestamp is None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+    else:
+        supplied_timestamp = event.timestamp
+
+        if supplied_timestamp.tzinfo is None:
+            supplied_timestamp = supplied_timestamp.replace(
+                tzinfo=timezone.utc
+            )
+
+        timestamp = supplied_timestamp.astimezone(
+            timezone.utc
+        ).isoformat()
 
     payload_json = json.dumps(
         event.payload,

@@ -7,6 +7,11 @@ from app.database import initialize_database
 from app.schemas import AuditEventCreate
 from app.verification import verify_audit_chain
 
+from datetime import datetime, timezone
+
+from fastapi import Query
+from app.query_service import query_audit_events
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,3 +39,35 @@ def write_audit_event(event: AuditEventCreate):
 @app.get("/audit/verify")
 def verify_audit_events():
     return verify_audit_chain()
+
+
+@app.get("/audit")
+def get_audit_events(
+    actorId: str | None = None,
+    eventType: str | None = None,
+    resourceType: str | None = None,
+    resourceId: str | None = None,
+    startTime: datetime | None = None,
+    endTime: datetime | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    def to_utc(value):
+        if value is None:
+            return None
+
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+
+        return value.astimezone(timezone.utc).isoformat()
+
+    return query_audit_events(
+        actor_id=actorId,
+        event_type=eventType,
+        resource_type=resourceType,
+        resource_id=resourceId,
+        start_time=to_utc(startTime),
+        end_time=to_utc(endTime),
+        limit=limit,
+        offset=offset,
+    )
