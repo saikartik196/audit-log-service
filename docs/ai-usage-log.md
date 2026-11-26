@@ -273,3 +273,44 @@ Verified:
 - No authentication or authorization
 - No external trusted hash anchor
 - Retention and redaction are not implemented
+
+## Entry 6 — Documentation and Submission Preparation
+
+### AI Assistance
+
+ChatGPT assisted with:
+- Structuring the project README
+- Drafting engineering decisions and architectural explanations
+- Identifying security and compliance limitations
+- Documenting implemented versus unimplemented features
+- Preparing the final submission checklist
+
+### Developer Actions
+
+- Reviewed and updated README.md
+- Created docs/engineering-decisions.md
+- Repaired an interrupted README edit
+- Executed the complete automated test suite
+- Reviewed the documented limitations
+
+### Validation
+
+Command:
+
+    python -m pytest -q
+
+Result:
+
+    19 passed, 1 warning
+
+The warning is a dependency deprecation warning from
+FastAPI/Starlette's test client.
+
+### Known Limitations
+
+- Retention and redaction are not implemented
+- No dedicated compliance reporting endpoint
+- No authentication or authorization
+- No independent cryptographic integrity anchor
+- Exported subsets are not independently verifiable
+- Production deployment and security hardening are incomplete
