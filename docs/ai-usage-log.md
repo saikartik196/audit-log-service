@@ -115,3 +115,55 @@ Verified:
 - No authentication or authorization
 - No retention, redaction, or export
 - Current hash design is not independently anchored
+
+## Entry 3 — Hash-Chain Verification and Tamper Detection
+
+Date: 2026-11-26
+
+### Task
+
+Implement independent hash-chain verification and detect direct
+modifications to stored audit events.
+
+### AI Assistance
+
+ChatGPT assisted with:
+- Designing the hash recalculation function
+- Implementing GET /audit/verify
+- Checking predecessor hash linkage
+- Writing automated database tampering tests
+- Identifying limitations of locally stored hash chains
+
+### Developer Actions
+
+- Created app/verification.py
+- Integrated the verification endpoint into FastAPI
+- Tested verification against two existing audit events
+- Ran isolated tests that modified SQLite records directly
+- Confirmed detection of altered actor IDs and predecessor hashes
+
+### Validation
+
+Command:
+
+    python -m pytest -v
+
+Result:
+
+    7 passed, 1 warning
+
+Verified:
+- Audit event creation and persistence
+- Required field validation
+- SHA-256 hash linkage
+- Detection of modified event content
+- Detection of broken predecessor references
+- Identification of the affected event
+
+### Known Limitations
+
+- A privileged attacker could recompute and rewrite the entire chain
+- Deletion of the final event may go undetected
+- No externally trusted hash checkpoint exists
+- Query filtering and pagination are not implemented
+- Retention, redaction, export, and compliance reporting remain pending

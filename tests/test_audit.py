@@ -96,3 +96,73 @@ def test_event_is_persisted(client):
 
     assert row is not None
     assert row["event_type"] == "USER_LOGIN"
+
+
+def test_detects_database_tampering(client):
+    # Create a legitimate audit event.
+    response = client.post(
+        "/audit",
+        json=make_event("ACCOUNT_UPDATED"),
+    )
+    assert response.status_code == 201
+
+    # Verify the original record.
+    before = client.get("/audit/verify")
+    assert before.status_code == 200
+    assert before.json()["valid"] is True
+
+    # Simulate an attacker directly changing the database.
+    with database.get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE audit_events
+            SET actor_id = ?
+            WHERE id = ?
+            """,
+            ("attacker_999", 1),
+        )
+        connection.commit()
+
+    # The verification endpoint must detect the alteration.
+    after = client.get("/audit/verify")
+
+    assert after.status_code == 200
+    assert after.json()["valid"] is False
+    assert after.json()["failedEventId"] == 1
+    assert after.json()["reason"] == "Content hash mismatch"
+
+
+def test_detects_broken_hash_link(client):
+    first = client.post(
+        "/audit",
+        json=make_event("USER_LOGIN"),
+    )
+    second = client.post(
+        "/audit",
+        json=make_event("ACCOUNT_UPDATED"),
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    # Tamper with the second event's predecessor reference.
+    with database.get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE audit_events
+            SET previous_hash = ?
+            WHERE id = ?
+            """,
+            ("fake_previous_hash", 2),
+        )
+        connection.commit()
+
+    response = client.get("/audit/verify")
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["valid"] is False
+    assert result["failedEventId"] == 2
+    assert result["reason"] == "Previous hash mismatch"
