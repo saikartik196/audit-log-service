@@ -18,6 +18,8 @@ from app.query_service import query_audit_events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     initialize_database()
+    from app.redaction_service import initialize_redaction_table
+    initialize_redaction_table()
     yield
 
 
@@ -96,3 +98,21 @@ def export_audit_records(
 def archive_audit_records():
     from app.retention_service import archive_expired_events
     return archive_expired_events()
+
+
+from pydantic import BaseModel, Field
+from app.redaction_service import redact_event_field
+
+
+class RedactionRequest(BaseModel):
+    fieldPath: str = Field(min_length=1)
+
+
+@app.post("/audit/{event_id}/redact")
+def redact_audit_record(event_id: int, request: RedactionRequest):
+    try:
+        return redact_event_field(event_id, request.fieldPath)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))

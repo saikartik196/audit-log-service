@@ -1,6 +1,7 @@
 import json
 
 from app.database import get_connection
+from app.redaction_service import apply_redactions
 
 
 def query_audit_events(
@@ -64,7 +65,10 @@ def query_audit_events(
             "actorId": row["actor_id"],
             "resourceType": row["resource_type"],
             "resourceId": row["resource_id"],
-            "payload": json.loads(row["payload"]),
+            "payload": apply_redactions(
+                row["id"],
+                json.loads(row["payload"]),
+            ),
             "timestamp": row["timestamp"],
             "contentHash": row["content_hash"],
             "previousHash": row["previous_hash"],
