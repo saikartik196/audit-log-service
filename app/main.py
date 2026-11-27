@@ -116,3 +116,36 @@ def redact_audit_record(event_id: int, request: RedactionRequest):
         raise HTTPException(status_code=404, detail=str(error))
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error))
+
+
+# Scenario C: Audit access to client account data.
+# Records access outcomes supplied by a trusted calling system.
+class AccountAccessRequest(BaseModel):
+    actorId: str = Field(min_length=1)
+    accountId: str = Field(min_length=1)
+    action: str = Field(min_length=1)
+    outcome: str
+    justification: str | None = None
+
+
+@app.post("/audit/account-access", status_code=status.HTTP_201_CREATED)
+def record_account_access(request: AccountAccessRequest):
+    if request.outcome not in {"ALLOWED", "DENIED"}:
+        raise HTTPException(
+            status_code=422,
+            detail="outcome must be ALLOWED or DENIED",
+        )
+
+    event = AuditEventCreate(
+        eventType="CLIENT_ACCOUNT_ACCESS",
+        actorId=request.actorId,
+        resourceType="CLIENT_ACCOUNT",
+        resourceId=request.accountId,
+        payload={
+            "action": request.action,
+            "outcome": request.outcome,
+            "justification": request.justification,
+        },
+    )
+
+    return create_audit_event(event)
