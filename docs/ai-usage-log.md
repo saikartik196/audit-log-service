@@ -314,3 +314,178 @@ FastAPI/Starlette's test client.
 - No independent cryptographic integrity anchor
 - Exported subsets are not independently verifiable
 - Production deployment and security hardening are incomplete
+
+---
+
+## Entry 7 — Retention and Logical Archival
+
+Date: 2026-11-27
+
+### AI Assistance
+
+ChatGPT assisted with designing and implementing configurable
+retention thresholds, logical archival, and automated tests.
+
+### Developer Actions
+
+- Integrated the archival endpoint
+- Ran automated retention tests
+- Reviewed test results
+- Committed and pushed the implementation
+
+### Design Decision
+
+Older records are marked as archived rather than deleted.
+This preserves the original hash chain.
+
+### Limitation
+
+Logical archival is not physical deletion or separate storage.
+
+## Entry 8 — Structured Redaction
+
+Date: 2026-11-27
+
+### AI Assistance
+
+ChatGPT assisted with field-path validation, redaction metadata,
+response masking, and automated tests.
+
+### Developer Actions
+
+- Integrated the redaction service
+- Verified redacted query responses
+- Ran the automated test suite
+- Committed and pushed the implementation
+
+### Design Decision
+
+Original hashed records remain unchanged. Redaction is applied
+when records are returned through supported APIs.
+
+### Limitation
+
+Original sensitive values remain in SQLite.
+
+## Entry 9 — Signed Exports and Offline Verification
+
+Date: 2026-11-27
+
+### AI Assistance
+
+ChatGPT assisted with:
+
+- Ed25519 signing-key generation
+- Canonical JSON serialization
+- Export signing
+- Offline signature verification
+- Tampering tests
+- API-to-offline integration testing
+- Debugging export verification behavior
+
+### Developer Actions
+
+- Installed the cryptography dependency
+- Integrated signing into filtered exports
+- Generated a local signing key
+- Ran automated signing and integration tests
+- Committed and pushed the implementation
+
+### Design Decision
+
+Exports are signed using a local Ed25519 private key.
+Verification requires the corresponding trusted public key.
+
+### Limitations
+
+Signatures do not prove export completeness.
+Signing keys require stronger production management.
+Verification and export retrieval do not share a guaranteed
+consistent database snapshot.
+
+## Entry 10 — Test Isolation and Reproducibility
+
+Date: 2026-11-27
+
+### AI Assistance
+
+ChatGPT suggested a pytest fixture for temporary signing keys
+and assisted with debugging a fixture collision.
+
+### Developer Actions
+
+- Added tests/conftest.py
+- Observed six test setup errors caused by duplicate key generation
+- Changed the automatic fixture's key filename
+- Reran the test suite successfully
+- Committed and pushed the fix
+
+### Validation
+
+Result:
+
+    38 passed, 1 warning
+
+## Entry 11 — Scenario C: Client Account Access Auditing
+
+Date: 2026-11-27
+
+### AI Assistance
+
+ChatGPT assisted with:
+
+- Interpreting an ambiguous regulatory requirement
+- Defining assumptions and limitations
+- Designing the account-access request model
+- Implementing the account-access endpoint
+- Generating automated tests
+
+### Developer Actions
+
+- Integrated POST /audit/account-access
+- Tested allowed and denied access attempts
+- Tested invalid outcomes and missing account identifiers
+- Ran the full automated test suite
+- Committed and pushed the implementation
+
+### Validation
+
+Result:
+
+    42 passed, 1 warning
+
+### Limitation
+
+The service records access decisions reported by the calling
+application. It does not independently authenticate actors,
+authorize access, or guarantee that every attempt is logged.
+
+## Entry 12 — Final Documentation and Submission Review
+
+Date: 2026-11-27
+
+### AI Assistance
+
+ChatGPT assisted with updating:
+
+- README.md
+- docs/engineering-decisions.md
+- docs/ai-usage-log.md
+
+The documentation was revised to distinguish implemented
+prototype features from outstanding production requirements.
+
+### Developer Actions
+
+- Reviewed existing documentation
+- Applied the documentation updates
+- Prepared the repository for final verification
+
+### Final Validation
+
+The last confirmed complete test run before these documentation
+updates reported:
+
+    42 passed, 1 warning
+
+Final repository checks and submission verification are pending.

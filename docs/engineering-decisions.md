@@ -174,3 +174,114 @@ This prototype does not provide:
 - Cryptographically complete filtered exports
 
 These limitations must be addressed before production use.
+
+---
+
+# Implementation Update — November 27, 2026
+
+The sections above document the initial design and earlier implementation
+state. The following records subsequent development and supersedes outdated
+statements that retention, redaction, and signed exports are unimplemented.
+
+## Scenario B — Retention and Archival
+
+The service implements configurable logical archival.
+
+- AUDIT_RETENTION_DAYS controls the retention threshold.
+- The default is 365 days.
+- POST /audit/archive marks eligible records with archived_at.
+- Original events and hashes remain in the database.
+- Archived records remain available through existing queries.
+
+This approach preserves chain verification but does not implement physical
+deletion, separate archive storage, or regulatory retention enforcement.
+
+## Scenario B — Structured Redaction
+
+The service supports field-level presentation redaction.
+
+- POST /audit/{event_id}/redact registers a dotted payload field path.
+- Redaction metadata is stored separately from original audit events.
+- Query and export responses mask selected values.
+- Original hashed payloads remain unchanged.
+
+Consequently, the hash chain remains verifiable.
+
+However, original sensitive data remains in SQLite. This is not secure
+erasure, encryption-based deletion, or a complete privacy compliance
+mechanism.
+
+## Scenario B — Signed Exports
+
+Filtered exports now include Ed25519 signatures.
+
+- The service verifies its stored chain before exporting.
+- The signed bundle contains selected records, filters, and metadata.
+- A local signing key signs the canonical JSON representation.
+- An offline verifier checks the signature against a trusted public key.
+- Tests cover signature tampering and API-to-offline verification.
+
+The public key must be distributed through a trusted channel.
+
+A valid signature establishes authenticity and integrity relative to the
+trusted signing key. It does not establish completeness of the filtered
+record set, authenticity of the original database, or independence from
+the exporting service.
+
+Verification and export retrieval remain separate database operations.
+
+## Scenario C — Client Account Access Auditing
+
+A dedicated endpoint now records application-reported access attempts:
+
+    POST /audit/account-access
+
+Required fields:
+
+- actorId
+- accountId
+- action
+- outcome (ALLOWED or DENIED)
+
+An optional justification may also be supplied.
+
+The endpoint converts the request into a CLIENT_ACCOUNT_ACCESS audit event
+with CLIENT_ACCOUNT as its resource type.
+
+The event is stored using the existing SHA-256 hash chain.
+
+The implementation assumes the calling application accurately reports
+access decisions and actor identities.
+
+It does not independently authorize requests, authenticate employees,
+intercept all account access, or guarantee complete coverage.
+
+The regulatory requirement remains subject to stakeholder clarification.
+
+## Testing and Reproducibility
+
+The November 27 development milestone contains 42 passing pytest tests.
+
+Tests cover core ingestion, chain verification, querying, exports,
+retention, redaction, signing, offline verification, and account access.
+
+Temporary signing keys are generated during testing, avoiding dependence
+on a developer-specific private key.
+
+## Outstanding Production Requirements
+
+Before production use, the system would require:
+
+- Authentication and role-based authorization
+- Reliable actor identity and mandatory access instrumentation
+- Trusted external hash anchoring
+- Protected and monitored signing-key management
+- Immutable or access-controlled audit storage
+- Reliable evidence completeness guarantees
+- Consistent database snapshots during verification and export
+- Secure retention, deletion, and privacy controls
+- Monitoring, alerting, backups, and recovery procedures
+- Jurisdiction-specific regulatory review
+
+This implementation demonstrates selected engineering mechanisms rather
+than claiming full regulatory compliance.
