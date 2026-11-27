@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from app.query_service import query_audit_events
 from app.verification import verify_audit_chain
+from app.signing_service import sign_bundle
 
 
 def export_audit_events(
@@ -43,7 +44,7 @@ def export_audit_events(
 
         offset += batch_size
 
-    return {
+    bundle = {
         "exported": True,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "filters": {
@@ -53,4 +54,12 @@ def export_audit_events(
         "total": len(events),
         "verification": verification,
         "events": events,
+    }
+
+
+    signed = sign_bundle(bundle)
+
+    return {
+        **bundle,
+        "signedBundle": signed,
     }
