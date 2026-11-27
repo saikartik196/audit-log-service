@@ -1,3 +1,4 @@
+
 import sqlite3
 from pathlib import Path
 
@@ -22,7 +23,23 @@ def initialize_database():
                 payload TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
                 content_hash TEXT NOT NULL,
-                previous_hash TEXT NOT NULL
+                previous_hash TEXT NOT NULL,
+                archived_at TEXT
             )
         """)
+
+        # Migrate existing databases without losing audit events.
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(audit_events)"
+            ).fetchall()
+        }
+
+        if "archived_at" not in columns:
+            connection.execute(
+                "ALTER TABLE audit_events ADD COLUMN archived_at TEXT"
+            )
+
         connection.commit()
+

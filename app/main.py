@@ -90,3 +90,9 @@ def export_audit_records(
         actor_id=actorId,
         resource_id=resourceId,
     )
+
+
+@app.post("/audit/archive")
+def archive_audit_records():
+    from app.retention_service import archive_expired_events
+    return archive_expired_events()
